@@ -42,9 +42,44 @@ import static com.lody.virtual.client.stub.VASettings.INTERCEPT_BACK_HOME;
 
 // Add Q Support by Saurik on 2019/11/27
 public class MethodProxies {
+    static class AvoidOverridePendingTransition extends MethodProxy
+    {
+        @Override
+        public String getMethodName()
+        {
+            return "overridePendingTransition";
+        }
+
+        @Override
+        public Object call(Object who, Method method, Object... args) throws Throwable
+        {
+            args[2] = android.R.anim.fade_in;
+            args[3] = android.R.anim.fade_out;
+            return method.invoke(who,args);
+        }
+    }
+
+    static class GetCallingPackage extends MethodProxy {
+
+        @Override
+        public String getMethodName() {
+            return "getCallingPackage";
+        }
+
+        @Override
+        public Object call(Object who, Method method, Object... args) throws Throwable {
+            IBinder token = (IBinder) args[0];
+            return VActivityManager.get().getCallingPackage(token);
+        }
+
+        @Override
+        public boolean isEnable() {
+            return isAppProcess();
+        }
+    }
+
     static class activityDestroyed extends MethodProxy
     {
-
         @Override
         public String getMethodName()
         {
@@ -110,10 +145,11 @@ public class MethodProxies {
         @Override
         public Object call(Object who, Method method, Object... args) throws Throwable {
 
-            Log.d("Q_M", "---->StartActivity 类");
+            VLog.d("Q_M", "---->StartActivity 类");
 
             int intentIndex = ArrayUtils.indexOfObject(args, Intent.class, 1);
             if (intentIndex < 0) {
+                VLog.d("Q_M", "---->intentIndex < 0");
                 return ActivityManagerCompat.START_INTENT_NOT_RESOLVED;
             }
             int resultToIndex = ArrayUtils.indexOfObject(args, IBinder.class, 2);
@@ -124,19 +160,21 @@ public class MethodProxies {
             int userId = VUserHandle.myUserId();
 
             if (ComponentUtils.isStubComponent(intent)) {
+                VLog.d("Q_M", "---->ComponentUtils.isStubComponent");
                 return method.invoke(who, args);
             }
 
             if (Intent.ACTION_INSTALL_PACKAGE.equals(intent.getAction())
                     || (Intent.ACTION_VIEW.equals(intent.getAction())
                     && "application/vnd.android.package-archive".equals(intent.getType()))) {
+                VLog.d("Q_M", "---->application/vnd.android.package-archive");
                 if (handleInstallRequest(intent)) {
                     return 0;
                 }
             } else if ((Intent.ACTION_UNINSTALL_PACKAGE.equals(intent.getAction())
                     || Intent.ACTION_DELETE.equals(intent.getAction()))
                     && "package".equals(intent.getScheme())) {
-
+                VLog.d("Q_M", "---->package");
                 if (handleUninstallRequest(intent)) {
                     return 0;
                 }
@@ -172,9 +210,9 @@ public class MethodProxies {
             if (activityInfo == null) {
                 VLog.e("VActivityManager", "Unable to resolve activityInfo : " + intent);
 
-                Log.d("Q_M", "---->StartActivity who=" + who);
-                Log.d("Q_M", "---->StartActivity intent=" + intent);
-                Log.d("Q_M", "---->StartActivity resultTo=" + resultTo);
+                VLog.d("Q_M", "---->StartActivity who=" + who);
+                VLog.d("Q_M", "---->StartActivity intent=" + intent);
+                VLog.d("Q_M", "---->StartActivity resultTo=" + resultTo);
 
                 if (intent.getPackage() != null && isAppPkg(intent.getPackage())) {
                     return ActivityManagerCompat.START_INTENT_NOT_RESOLVED;
@@ -191,6 +229,8 @@ public class MethodProxies {
             }
             int res = VActivityManager.get().startActivity(intent, activityInfo, resultTo, options, resultWho, requestCode, VUserHandle.myUserId());
             if (res != 0 && resultTo != null && requestCode > 0) {
+                VLog.d("Q_M", "---->sendActivityResult to=" + resultTo+ " who "+resultWho
+                        +" code "+requestCode);
                 VActivityManager.get().sendActivityResult(resultTo, resultWho, requestCode);
             }
             if (resultTo != null) {
@@ -200,6 +240,8 @@ public class MethodProxies {
                         TypedValue out = new TypedValue();
                         Resources.Theme theme = r.activity.getResources().newTheme();
                         theme.applyStyle(activityInfo.getThemeResource(), true);
+
+                        VLog.d("Q_M", "---->StartActivity Anim=" + activityInfo.getThemeResource());
                         if (theme.resolveAttribute(android.R.attr.windowAnimationStyle, out, true)) {
 
                             TypedArray array = theme.obtainStyledAttributes(out.data,
@@ -208,7 +250,7 @@ public class MethodProxies {
                                             android.R.attr.activityOpenExitAnimation
                                     });
 
-                            r.activity.overridePendingTransition(array.getResourceId(0, 0), array.getResourceId(1, 0));
+                            r.activity.overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
                             array.recycle();
                         }
                     } catch (Throwable e) {

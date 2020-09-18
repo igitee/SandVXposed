@@ -57,6 +57,11 @@ public class NativeEngine {
         NativeMethods.init();
     }
 
+    static public void injectNativeEngine()
+    {
+        // nothing
+    }
+
 
     public static void startDexOverride() {
         List<InstalledAppInfo> installedAppInfos = VirtualCore.get().getInstalledApps(0);
@@ -125,7 +130,10 @@ public class NativeEngine {
         }
     }
 
-    public static void forbid(String path) {
+    public static void forbid(String path, boolean isF) {
+        if (!isF && !path.endsWith("/")) {
+            path = path + "/";
+        }
         if (!path.endsWith("/")) {
             path = path + "/";
         }
@@ -258,6 +266,8 @@ public class NativeEngine {
     private static native void nativeIOForbid(String path);
 
     private static native void nativeEnableIORedirect(String selfSoPath, int apiLevel, int previewApiLevel);
+
+    public static native boolean nativeGetIsX86();
 
     public static int onGetUid(int uid) {
         return VClientImpl.get().getBaseVUid();

@@ -322,8 +322,13 @@ public final class VClientImpl extends IVClient.Stub {
             InvocationStubManager.getInstance().checkEnv(AppInstrumentation.class);
         }
 
-        if(XposedUtils.isEnabledXposed(packageName))
-            SandXposed.injectXposedModule(context, packageName, processName);
+        if(!NativeEngine.nativeGetIsX86())
+        {
+            if(XposedUtils.isEnabledXposed(packageName))
+            {
+                SandXposed.injectXposedModule(context, packageName, processName);
+            }
+        }
 
         mInitialApplication = LoadedApk.makeApplication.call(data.info, false, null);
 
@@ -344,19 +349,23 @@ public final class VClientImpl extends IVClient.Stub {
 
         VirtualCore.get().getComponentDelegate().beforeApplicationCreate(mInitialApplication);
 
+        /*
         if(BuildCompat.isQ())
         {
             oO00oO00oO0o0ooo0(packageName);
 
             oo0o0o0o0o0o0();
         }
+        */
 
         try {
 
             mInstrumentation.callApplicationOnCreate(mInitialApplication);
 
+            /*
             if(BuildCompat.isQ())
                 oo0o0o0o0000();
+                */
 
             InvocationStubManager.getInstance().checkEnv(HCallbackStub.class);
             if (conflict) {
@@ -533,6 +542,8 @@ public final class VClientImpl extends IVClient.Stub {
         NativeEngine.redirectDirectory("/sys/class/net/eth0/address", wifiMacAddressFile);
         NativeEngine.redirectDirectory("/sys/class/net/wifi/address", wifiMacAddressFile);
 
+        LinuxCompat.forgeProcDriver(false);
+
         NativeEngine.redirectDirectory("/data/data/" + info.packageName, info.dataDir);
         NativeEngine.redirectDirectory("/data/user/0/" + info.packageName, info.dataDir);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -543,6 +554,12 @@ public final class VClientImpl extends IVClient.Stub {
         NativeEngine.redirectDirectory(userLibPath, libPath);
         NativeEngine.redirectDirectory("/data/data/" + info.packageName + "/lib/", libPath);
         NativeEngine.redirectDirectory("/data/user/0/" + info.packageName + "/lib/", libPath);
+
+        /*
+         * 禁用部分软件的检测
+         */
+         NativeEngine.redirectFile("/proc/self/cgroup","/dev/null");
+         // NativeEngine.redirectFile("/proc/"+Process.myPid()+"/maps","/dev/null");
 
         /*
         VirtualStorageManager vsManager = VirtualStorageManager.get();
