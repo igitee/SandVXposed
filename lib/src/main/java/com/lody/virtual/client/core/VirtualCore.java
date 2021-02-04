@@ -54,6 +54,7 @@ import com.lody.virtual.server.interfaces.IAppRequestListener;
 import com.lody.virtual.server.interfaces.IPackageObserver;
 import com.lody.virtual.server.interfaces.IUiCallback;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
@@ -460,11 +461,12 @@ public final class VirtualCore {
         }
         ApplicationInfo appInfo = setting.getApplicationInfo(userId);
         PackageManager pm = context.getPackageManager();
-        String name;
+        String name = "";
         Bitmap icon;
         try {
             CharSequence sequence = appInfo.loadLabel(pm);
-            name = sequence.toString();
+            if(sequence != null)
+                name = sequence.toString();
             icon = BitmapUtils.drawableToBitmap(appInfo.loadIcon(pm));
         } catch (Throwable e) {
             return false;
@@ -658,6 +660,17 @@ public final class VirtualCore {
             hHook.CleanPackage(pkgName);
         }
         catch (Throwable e)
+        {
+            e.printStackTrace();
+        }
+        try{
+            File ext = new File(context.getCacheDir(),"v_user");
+            ext = new File(ext, pkgName);
+            if(ext.exists())
+            {
+                if(!ext.delete())ext.deleteOnExit();
+            }
+        }catch (Exception e)
         {
             e.printStackTrace();
         }

@@ -2,6 +2,8 @@ package io.virtualapp;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Build;
+
 import androidx.multidex.MultiDexApplication;
 
 import com.lody.virtual.client.core.VirtualCore;
@@ -9,8 +11,6 @@ import com.lody.virtual.client.stub.VASettings;
 import com.lody.virtual.helper.utils.VLog;
 import com.lody.virtual.sandxposed.SandXposed;
 import com.sk.dexdumper.DumpDexV2;
-// import com.trend.lazyinject.buildmap.Auto_ComponentBuildMap;
-// import com.trend.lazyinject.lib.LazyInject;
 
 import io.virtualapp.delegate.MyAppRequestListener;
 import io.virtualapp.delegate.MyComponentDelegate;
@@ -33,6 +33,18 @@ public class VApp extends MultiDexApplication {
     @Override
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            SandXposed.freeReflection(base);
+        }
+        if(Build.VERSION.SDK_INT >= 30)
+        {
+            com.sk.SKAppLoad.InitApp.bindApplicationPassCheck();
+        }
+        try{
+            com.sk.SKAppLoad.InitApp.emplaceDeviceCompat();
+        }catch (Exception ignored)
+        {
+        }
         SandXposed.init(BuildConfig.DEBUG);
         VLog.OPEN_LOG = BuildConfig.DEBUG;
         mPreferences = base.getSharedPreferences("va", Context.MODE_MULTI_PROCESS);

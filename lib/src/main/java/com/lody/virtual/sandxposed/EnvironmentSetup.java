@@ -23,11 +23,11 @@ import sk.vpkg.provider.BanNotificationProvider;
 import sk.vpkg.sign.SKPackageGuard;
 
 public class EnvironmentSetup {
-
+    public static volatile boolean enableEnv = false;
 
     public static void init(Context context, String packageName, String processName) {
         VLog.d("SandHook","Process attach: "+processName+" in package "+packageName);
-        initSystemProp(context);
+        if(enableEnv) initSystemProp(context);
         initForSpecialApps(context, packageName);
         if(BuildConfig.DEBUG)
         {
@@ -70,16 +70,14 @@ public class EnvironmentSetup {
         try{
             context.getClassLoader().loadClass("org.luaj.vm2.Lua");
             ggclassExist = true;
-        }catch (Throwable e)
+        }catch (Throwable ignored)
         {
-            e.printStackTrace();
         }
         try{
             context.getClassLoader().loadClass("luaj.Lua");
             ggclassExist = true;
-        }catch (Throwable e)
+        }catch (Throwable ignored)
         {
-            e.printStackTrace();
         }
 
         if(ggclassExist)
@@ -162,8 +160,9 @@ public class EnvironmentSetup {
 
         try
         {
-            XposedHelpers.findAndHookMethod(Process.class, "killProcess", int.class, g_Hook);
-            XposedHelpers.findAndHookMethod(System.class, "exit", int.class, g_Hook);
+            // 可以不再钩结束函数。
+            //XposedHelpers.findAndHookMethod(Process.class, "killProcess", int.class, g_Hook);
+            //XposedHelpers.findAndHookMethod(System.class, "exit", int.class, g_Hook);
             String szEnableRedirectStorage = BanNotificationProvider.getString(context,"disableAdaptApp");
             if(szEnableRedirectStorage!=null)
                 SKPackageGuard.antiXposedCheck(packageName);
